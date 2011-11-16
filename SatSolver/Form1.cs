@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
-using System.IO;
 using SatSolver.ExperimentResults;
 using SatSolver.Reports;
 
@@ -62,12 +61,13 @@ namespace SatSolver
 
         void _backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            ExperimentResult experimentResult = new ExperimentResult();
-            experimentResult.VariableCount = variableCount;
-            experimentResult.KonyncCount = iKonyncCount;
-            experimentResult.FreeMembers = iFreeMembers;
-            experimentResult.ExperimentRepeat = iExperimentRepeat;
-            Random rnd = new Random();
+            var experimentResult = new ExperimentResult
+                                       {
+                                           VariableCount = variableCount,
+                                           KonyncCount = iKonyncCount,
+                                           FreeMembers = iFreeMembers,
+                                           ExperimentRepeat = iExperimentRepeat
+                                       };
 
             if (bIsAlternative)
             {
@@ -86,76 +86,54 @@ namespace SatSolver
 
             for (int experimentIndex = 0; experimentIndex < iExperimentRepeat; experimentIndex++)
             {
-                int num11;
                 Log.Debug("------------------Next generation");
                 int num = iKonyncCount;
-                int num2 = variableCount;
-                int num3 = iFreeMembers;
-                uint num4 = 0;
-                int num6 = -1;
-                int num7 = -1;
-                int[] source = new int[num3];
-                int num8 = ((1) << num2) / 8;
-                if (num8 == 0)
+                int countParams = variableCount;
+                int countFreeMembers = iFreeMembers;
+                uint countUniqueConjunction = 0;
+                
+                var buffer = new byte[BinaryCounter.BinaryCounter.FindSizeBitMapForCountParams(countParams)];
+                Log.DebugFormat("Size of mass = {0}", buffer.Length);
+                
+                int[] source = BinaryCounter.BinaryCounter.FindFreeMembersIndex(countParams, countFreeMembers);
+                int mask = BinaryCounter.BinaryCounter.GetMask(source);
+                int rotatedMask = BinaryCounter.BinaryCounter.GetRotateMask(mask);
+                Log.DebugFormat("Mask = {0}", mask);
+                Log.DebugFormat("RotateMask = {0}", rotatedMask);
+
+                for (int i = 0; (i < num) && (!e.Cancel); i++)
                 {
-                    num8++;
-                }
-                var buffer = new byte[num8];
-                Log.Debug("Size of mass = " + num8);
-                int index = 0;
-                while (index < num3)
-                {
-                    int num10 = rnd.Next() % num2;
-                    if (!source.Contains<int>(num10))
+                    int generatedConjunction = BinaryCounter.BinaryCounter.GetRandomСonjunction(countParams);
+                    Log.DebugFormat("Generate Digit = {0}", generatedConjunction);
+
+                    foreach (var recoveredConjunction in BinaryCounter.BinaryCounter.RecoveredConjunction(mask, rotatedMask, generatedConjunction, countFreeMembers))
                     {
-                        source[index] = num10;
-                        index++;
+                        int byteIndex = recoveredConjunction / 8;
+                        Log.Debug("                PereborDigit = " + recoveredConjunction);
+                        Log.Debug("                Index = " + byteIndex);
+                        byte conjunctionByte = BinaryCounter.BinaryCounter.GetCheckedBitrForConjunction(recoveredConjunction);
+                        if ((buffer[byteIndex] & conjunctionByte) == 0)
+                            countUniqueConjunction++;
+                        
+                        Log.Debug("                Count = " + countUniqueConjunction);
+                        buffer[byteIndex] |= conjunctionByte;
                     }
                 }
-                for (num11 = 0; num11 < num3; num11++)
-                {
-                    int num12 = 0;
-                    num12 = ((int)1) << source[num11];
-                    num6 ^= num12;
-                }
-                num7 ^= num6;
-                Log.Debug("Mask = " + num6);
-                Log.Debug("RotateMask = " + num7);
-                for (num11 = 0; (num11 < num) && (!e.Cancel); num11++)
-                {
-                    int num5 = rnd.Next() % (((int)1) << num2);
-                    Log.DebugFormat("Generate Digit = {0}", num5);
-                    int num13 = 0;
-                    for (int i = 0; i < (((int)1) << num3); i++)
-                    {
-                        num13 |= num6;
-                        num13++;
-                        num13 &= num7;
-                        int num14 = num5 ^ num13;
-                        int num16 = num14 / 8;
-                        Log.Debug("                PereborDigit = " + num14);
-                        Log.Debug("                Index = " + num16);
-                        byte num17 = Convert.ToByte((1 << (num14 % 8)));
-                        if ((buffer[num16] & num17) == 0)
-                        {
-                            num4++;
-                        }
-                        Log.Debug("                Count = " + num4);
-                        buffer[num16] = (byte)(buffer[num16] | Convert.ToByte((int)(((int)1) << (num14 % 8))));
-                    }
-                }
-                float num18 = Convert.ToSingle(num4) / (1 << variableCount);
+
+                float num18 = Convert.ToSingle(countUniqueConjunction) / (1 << variableCount);
                 Log.Debug("Total = " + num18);
 
                 // записываем результаты и отображаемся
                 experimentResult.PercentageSatisfiability.Add(num18);
                 backgroundWorker.ReportProgress(experimentIndex);
 
-                if (backgroundWorker.CancellationPending == true)
+                if (backgroundWorker.CancellationPending)
                 {
                     e.Cancel = true;
                     break;
                 }
+
+
             }
             e.Result = experimentResult;
         }
