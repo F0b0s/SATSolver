@@ -1,27 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
+using System.Reflection;
 using System.Windows.Forms;
 using System.IO;
-using SatSolver.TeoreticFunctions;
+using SatSolver.ExperimentResults;
 using SatSolver.Reports;
 
 namespace SatSolver
 {
     public partial class Form1 : Form
     {
-        BackgroundWorker _backgroundWorker;
+        private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        BackgroundWorker backgroundWorker;
 
-        private int _iVariableCount;
-        private int _iKonyncCount;
-        private int _iFreeMembers;
-        private int _iExperimentRepeat;
-        private bool _bIsAlternative;
-        private bool _bIsStop;
+        private int variableCount;
+        private int iKonyncCount;
+        private int iFreeMembers;
+        private int iExperimentRepeat;
+        private bool bIsAlternative;
 
         public Form1()
         {
@@ -30,34 +27,34 @@ namespace SatSolver
 
         private void btnCalculate_Click(object sender, EventArgs e)
         {
-            _backgroundWorker = new BackgroundWorker();
-            _backgroundWorker.WorkerSupportsCancellation = true;
-            _backgroundWorker.WorkerReportsProgress = true;
-            _backgroundWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(_backgroundWorker_RunWorkerCompleted);
-            _backgroundWorker.ProgressChanged += new ProgressChangedEventHandler(_backgroundWorker_ProgressChanged);
+            backgroundWorker = new BackgroundWorker();
+            backgroundWorker.WorkerSupportsCancellation = true;
+            backgroundWorker.WorkerReportsProgress = true;
+            backgroundWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(_backgroundWorker_RunWorkerCompleted);
+            backgroundWorker.ProgressChanged += new ProgressChangedEventHandler(_backgroundWorker_ProgressChanged);
 
             if (tabControl1.SelectedIndex == 0)
             {
-                _backgroundWorker.DoWork += new DoWorkEventHandler(_backgroundWorker_DoWork);
+                backgroundWorker.DoWork += new DoWorkEventHandler(_backgroundWorker_DoWork);
 
-                _iVariableCount = (int)numMembersCount.Value;
-                _iKonyncCount = (int)numKonyncCount.Value;
-                _iFreeMembers = (int)numFreeMembers.Value;
-                _iExperimentRepeat = (int)numExperimentCount.Value;
-                _bIsAlternative = checkBox1.Checked;
+                variableCount = (int)numMembersCount.Value;
+                iKonyncCount = (int)numKonyncCount.Value;
+                iFreeMembers = (int)numFreeMembers.Value;
+                iExperimentRepeat = (int)numExperimentCount.Value;
+                bIsAlternative = checkBox1.Checked;
             }
             else
             {
-                _backgroundWorker.DoWork += new DoWorkEventHandler(backgroundWorker_DoWork_BorderSatisfiability);
+                backgroundWorker.DoWork += new DoWorkEventHandler(backgroundWorker_DoWork_BorderSatisfiability);
 
-                _iVariableCount = (int)numBorderVariableCount.Value;
-                _iFreeMembers = (int)numFreeMembers.Value;
-                _iExperimentRepeat = (int)numBorderRepeatCount.Value;
+                variableCount = (int)numBorderVariableCount.Value;
+                iFreeMembers = (int)numFreeMembers.Value;
+                iExperimentRepeat = (int)numBorderRepeatCount.Value;
             }
             progressBar1.Minimum = 0;
-            progressBar1.Maximum = _iExperimentRepeat;
+            progressBar1.Maximum = iExperimentRepeat;
             progressBar1.Value = 0;
-            _backgroundWorker.RunWorkerAsync();
+            backgroundWorker.RunWorkerAsync();
 
             DisableControls();
             btnStopCalculate.Enabled = true;
@@ -66,102 +63,98 @@ namespace SatSolver
         void _backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
         {
             ExperimentResult experimentResult = new ExperimentResult();
-            experimentResult.VariableCount = _iVariableCount;
-            experimentResult.KonyncCount = _iKonyncCount;
-            experimentResult.FreeMembers = _iFreeMembers;
-            experimentResult.ExperimentRepeat = _iExperimentRepeat;
+            experimentResult.VariableCount = variableCount;
+            experimentResult.KonyncCount = iKonyncCount;
+            experimentResult.FreeMembers = iFreeMembers;
+            experimentResult.ExperimentRepeat = iExperimentRepeat;
             Random rnd = new Random();
 
-            if (_bIsAlternative)
+            if (bIsAlternative)
             {
-                experimentResult.TeoreticSatisfiability = TeoreticFunctions.TeoreticFunctions.TeoreticProbabilityWithLogariphm(_iVariableCount, _iKonyncCount, _iFreeMembers);                
+                experimentResult.TeoreticSatisfiability = TeoreticFunctions.TeoreticFunctions.TeoreticProbabilityWithLogariphm(variableCount, iKonyncCount, iFreeMembers);                
             }
             else
             {
-                experimentResult.TeoreticSatisfiability = TeoreticFunctions.TeoreticFunctions.FindTeoreticProbabilityWithRepeatAlternative(_iVariableCount, _iKonyncCount,
-                    _iFreeMembers);
+                experimentResult.TeoreticSatisfiability = TeoreticFunctions.TeoreticFunctions.FindTeoreticProbabilityWithRepeatAlternative(variableCount, iKonyncCount,
+                    iFreeMembers);
             }
 
-            using (StreamWriter sw = new StreamWriter(File.Open("Log.txt", FileMode.Append)))
+            Log.Debug("-------------------------New checking at " + DateTime.Now);
+            Log.Debug("Count minterms - " + iKonyncCount);
+            Log.Debug("Count free members - " + iFreeMembers);
+            Log.Debug("Count parameters - " + variableCount);
+
+            for (int experimentIndex = 0; experimentIndex < iExperimentRepeat; experimentIndex++)
             {
-                sw.WriteLine("-------------------------New checking at " + DateTime.Now);
-                sw.WriteLine("Count minterms - " + _iKonyncCount);
-                sw.WriteLine("Count free members - " + _iFreeMembers);
-                sw.WriteLine("Count parameters - " + _iVariableCount);
-
-                for (int experimentIndex = 0; experimentIndex < _iExperimentRepeat; experimentIndex++)
+                int num11;
+                Log.Debug("------------------Next generation");
+                int num = iKonyncCount;
+                int num2 = variableCount;
+                int num3 = iFreeMembers;
+                uint num4 = 0;
+                int num6 = -1;
+                int num7 = -1;
+                int[] source = new int[num3];
+                int num8 = ((1) << num2) / 8;
+                if (num8 == 0)
                 {
-                    int num11;
-                    sw.WriteLine("------------------Next generation");
-                    int num = _iKonyncCount;
-                    int num2 = _iVariableCount;
-                    int num3 = _iFreeMembers;
-                    uint num4 = 0;
-                    int num6 = -1;
-                    int num7 = -1;
-                    int[] source = new int[num3];
-                    int num8 = ((1) << num2) / 8;
-                    if (num8 == 0)
+                    num8++;
+                }
+                var buffer = new byte[num8];
+                Log.Debug("Size of mass = " + num8);
+                int index = 0;
+                while (index < num3)
+                {
+                    int num10 = rnd.Next() % num2;
+                    if (!source.Contains<int>(num10))
                     {
-                        num8++;
+                        source[index] = num10;
+                        index++;
                     }
-                    byte[] buffer = new byte[num8];
-                    sw.WriteLine("Size of mass = " + num8);
-                    DateTime time = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second, DateTime.Now.Millisecond);
-                    int index = 0;
-                    while (index < num3)
+                }
+                for (num11 = 0; num11 < num3; num11++)
+                {
+                    int num12 = 0;
+                    num12 = ((int)1) << source[num11];
+                    num6 ^= num12;
+                }
+                num7 ^= num6;
+                Log.Debug("Mask = " + num6);
+                Log.Debug("RotateMask = " + num7);
+                for (num11 = 0; (num11 < num) && (!e.Cancel); num11++)
+                {
+                    int num5 = rnd.Next() % (((int)1) << num2);
+                    Log.DebugFormat("Generate Digit = {0}", num5);
+                    int num13 = 0;
+                    for (int i = 0; i < (((int)1) << num3); i++)
                     {
-                        int num10 = rnd.Next() % num2;
-                        if (!source.Contains<int>(num10))
+                        num13 |= num6;
+                        num13++;
+                        num13 &= num7;
+                        int num14 = num5 ^ num13;
+                        int num16 = num14 / 8;
+                        Log.Debug("                PereborDigit = " + num14);
+                        Log.Debug("                Index = " + num16);
+                        byte num17 = Convert.ToByte((1 << (num14 % 8)));
+                        if ((buffer[num16] & num17) == 0)
                         {
-                            source[index] = num10;
-                            index++;
+                            num4++;
                         }
+                        Log.Debug("                Count = " + num4);
+                        buffer[num16] = (byte)(buffer[num16] | Convert.ToByte((int)(((int)1) << (num14 % 8))));
                     }
-                    for (num11 = 0; num11 < num3; num11++)
-                    {
-                        int num12 = 0;
-                        num12 = ((int)1) << source[num11];
-                        num6 ^= num12;
-                    }
-                    num7 ^= num6;
-                    sw.WriteLine("Mask = " + num6);
-                    sw.WriteLine("RotateMask = " + num7);
-                    for (num11 = 0; (num11 < num) && (!e.Cancel); num11++)
-                    {
-                        int num5 = rnd.Next() % (((int)1) << num2);
-                        sw.WriteLine("Generate Digit = " + num5);
-                        int num13 = 0;
-                        for (int i = 0; i < (((int)1) << num3); i++)
-                        {
-                            num13 |= num6;
-                            num13++;
-                            num13 &= num7;
-                            int num14 = num5 ^ num13;
-                            int num16 = num14 / 8;
-                            sw.WriteLine("                PereborDigit = " + num14);
-                            sw.WriteLine("                Index = " + num16);
-                            byte num17 = Convert.ToByte((int)(((int)1) << (num14 % 8)));
-                            if ((buffer[num16] & num17) == 0)
-                            {
-                                num4++;
-                            }
-                            sw.WriteLine("                Count = " + num4);
-                            buffer[num16] = (byte)(buffer[num16] | Convert.ToByte((int)(((int)1) << (num14 % 8))));
-                        }
-                    }
-                    float num18 = Convert.ToSingle(num4) / ((float)((1) << _iVariableCount));
-                    sw.WriteLine("Total = " + num18);
+                }
+                float num18 = Convert.ToSingle(num4) / (1 << variableCount);
+                Log.Debug("Total = " + num18);
 
-                    // записываем результаты и отображаемся
-                    experimentResult.PercentageSatisfiability.Add(num18);
-                    _backgroundWorker.ReportProgress(experimentIndex);
+                // записываем результаты и отображаемся
+                experimentResult.PercentageSatisfiability.Add(num18);
+                backgroundWorker.ReportProgress(experimentIndex);
 
-                    if (_backgroundWorker.CancellationPending == true)
-                    {
-                        e.Cancel = true;
-                        break;
-                    }
+                if (backgroundWorker.CancellationPending == true)
+                {
+                    e.Cancel = true;
+                    break;
                 }
             }
             e.Result = experimentResult;
@@ -169,101 +162,97 @@ namespace SatSolver
 
         void backgroundWorker_DoWork_BorderSatisfiability(object sender, DoWorkEventArgs e)
         {
-            BorderExperimentResult borderExperimentResult = new BorderExperimentResult();
-            borderExperimentResult.VariableCount = _iVariableCount;
-            borderExperimentResult.FreeMembers = _iFreeMembers;
-            borderExperimentResult.ExperimentRepeat = _iExperimentRepeat;
+            var borderExperimentResult = new BorderExperimentResult();
+            borderExperimentResult.VariableCount = variableCount;
+            borderExperimentResult.FreeMembers = iFreeMembers;
+            borderExperimentResult.ExperimentRepeat = iExperimentRepeat;
 
             float borderSatisfiability = (float)numBorderSatisfiability.Value;
-            Random rnd = new Random();
+            var rnd = new Random();
 
-            using (StreamWriter sw = new StreamWriter(File.Open("Log.txt", FileMode.Append)))
+            Log.Debug("-------------------------New checking at " + DateTime.Now);
+            Log.Debug("Count minterms - " + iKonyncCount);
+            Log.Debug("Count free members - " + iFreeMembers);
+            Log.Debug("Count parameters - " + variableCount);
+
+            for (int experimentIndex = 0; (experimentIndex < iExperimentRepeat) && (!e.Cancel); experimentIndex++)
             {
-                sw.WriteLine("-------------------------New checking at " + DateTime.Now);
-                sw.WriteLine("Count minterms - " + _iKonyncCount);
-                sw.WriteLine("Count free members - " + _iFreeMembers);
-                sw.WriteLine("Count parameters - " + _iVariableCount);
-
-                for (int experimentIndex = 0; (experimentIndex < _iExperimentRepeat) && (!e.Cancel); experimentIndex++)
+                int num11;
+                Log.Debug("------------------Next generation");
+                //int num = _iKonyncCount;
+                int iVariableCount = this.variableCount;
+                int num3 = iFreeMembers;
+                uint num4 = 0;
+                int num6 = -1;
+                int num7 = -1;
+                int[] source = new int[num3];
+                int num8 = ((1) << iVariableCount) / 8;
+                if (num8 == 0)
                 {
-                    int num11;
-                    sw.WriteLine("------------------Next generation");
-                    //int num = _iKonyncCount;
-                    int iVariableCount = _iVariableCount;
-                    int num3 = _iFreeMembers;
-                    uint num4 = 0;
-                    int num6 = -1;
-                    int num7 = -1;
-                    int[] source = new int[num3];
-                    int num8 = ((1) << iVariableCount) / 8;
-                    if (num8 == 0)
+                    num8++;
+                }
+                byte[] buffer = new byte[num8];
+                Log.Debug("Size of mass = " + num8);
+                int index = 0;
+                while (index < num3)
+                {
+                    int num10 = rnd.Next() % iVariableCount;
+                    if (!source.Contains<int>(num10))
                     {
-                        num8++;
+                        source[index] = num10;
+                        index++;
                     }
-                    byte[] buffer = new byte[num8];
-                    sw.WriteLine("Size of mass = " + num8);
-                    DateTime time = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second, DateTime.Now.Millisecond);
-                    int index = 0;
-                    while (index < num3)
+                }
+                for (num11 = 0; num11 < num3; num11++)
+                {
+                    int num12 = 0;
+                    num12 = ((int)1) << source[num11];
+                    num6 ^= num12;
+                }
+                num7 ^= num6;
+                Log.Debug("Mask = " + num6);
+                Log.Debug("RotateMask = " + num7);
+
+                float currentSatisfiability = 0;
+                int indexMinterm = 0;
+                do
+                {
+                    int num5 = rnd.Next() % (1 << iVariableCount);
+                    Log.Debug("Generate Digit = " + num5);
+                    int num13 = 0;
+                    for (int i = 0; i < (1 << num3); i++)
                     {
-                        int num10 = rnd.Next() % iVariableCount;
-                        if (!source.Contains<int>(num10))
+                        num13 |= num6;
+                        num13++;
+                        num13 &= num7;
+                        int num14 = num5 ^ num13;
+                        int num16 = num14 / 8;
+                        Log.Debug("                PereborDigit = " + num14);
+                        Log.Debug("                Index = " + num16);
+                        byte num17 = Convert.ToByte((int)(((int)1) << (num14 % 8)));
+                        if ((buffer[num16] & num17) == 0)
                         {
-                            source[index] = num10;
-                            index++;
+                            num4++;
                         }
+                        Log.Debug("                Count = " + num4);
+                        buffer[num16] = (byte)(buffer[num16] | Convert.ToByte((int)(((int)1) << (num14 % 8))));
                     }
-                    for (num11 = 0; num11 < num3; num11++)
-                    {
-                        int num12 = 0;
-                        num12 = ((int)1) << source[num11];
-                        num6 ^= num12;
-                    }
-                    num7 ^= num6;
-                    sw.WriteLine("Mask = " + num6);
-                    sw.WriteLine("RotateMask = " + num7);
+                    currentSatisfiability = Convert.ToSingle(num4) / ((float)((1) << this.variableCount));
+                    indexMinterm++;
 
-                    float currentSatisfiability = 0;
-                    int indexMinterm = 0;
-                    do
-                    {
-                        int num5 = rnd.Next() % (1 << iVariableCount);
-                        sw.WriteLine("Generate Digit = " + num5);
-                        int num13 = 0;
-                        for (int i = 0; i < (1 << num3); i++)
-                        {
-                            num13 |= num6;
-                            num13++;
-                            num13 &= num7;
-                            int num14 = num5 ^ num13;
-                            int num16 = num14 / 8;
-                            sw.WriteLine("                PereborDigit = " + num14);
-                            sw.WriteLine("                Index = " + num16);
-                            byte num17 = Convert.ToByte((int)(((int)1) << (num14 % 8)));
-                            if ((buffer[num16] & num17) == 0)
-                            {
-                                num4++;
-                            }
-                            sw.WriteLine("                Count = " + num4);
-                            buffer[num16] = (byte)(buffer[num16] | Convert.ToByte((int)(((int)1) << (num14 % 8))));
-                        }
-                        currentSatisfiability = Convert.ToSingle(num4) / ((float)((1) << _iVariableCount));
-                        indexMinterm++;                       
-                        
-                        sw.WriteLine("Total = " + currentSatisfiability);
+                    Log.Debug("Total = " + currentSatisfiability);
 
-                    } while((currentSatisfiability < borderSatisfiability) && (!e.Cancel));
+                } while((currentSatisfiability < borderSatisfiability) && (!e.Cancel));
 
-                    borderExperimentResult.PercentageSatisfiability.Add(currentSatisfiability);
-                    borderExperimentResult.BorderCount.Add(indexMinterm);
+                borderExperimentResult.PercentageSatisfiability.Add(currentSatisfiability);
+                borderExperimentResult.BorderCount.Add(indexMinterm);
 
-                    _backgroundWorker.ReportProgress(experimentIndex);
+                backgroundWorker.ReportProgress(experimentIndex);
 
-                    if (_backgroundWorker.CancellationPending == true)
-                    {
-                        e.Cancel = true;
-                        break;
-                    }
+                if (backgroundWorker.CancellationPending == true)
+                {
+                    e.Cancel = true;
+                    break;
                 }
             }
             e.Result = borderExperimentResult;
@@ -328,7 +317,7 @@ namespace SatSolver
 
         private void btnStopCalculate_Click(object sender, EventArgs e)
         {
-            _backgroundWorker.CancelAsync();
+            backgroundWorker.CancelAsync();
             btnStopCalculate.Enabled = false;
         }
     }

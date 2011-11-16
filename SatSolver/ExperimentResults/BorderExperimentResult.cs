@@ -1,50 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 
-namespace SatSolver
+namespace SatSolver.ExperimentResults
 {
     public class BorderExperimentResult
     {
-        private int _iVariableCount;
-        private int _iFreeMembers;
-        private int _iExperimentRepeat;
-        private List<float> _lstPercentageSatisfiability;
-        private List<int> _lstBorder;
-
         public BorderExperimentResult()
         {
-            _lstPercentageSatisfiability = new List<float>();
-            _lstBorder = new List<int>();
+            PercentageSatisfiability = new List<float>();
+            BorderCount = new List<int>();
         }
 
-        public List<int> BorderCount
-        {
-            get { return _lstBorder; }
-        }
-
-        public int VariableCount
-        {
-            get { return _iVariableCount; }
-            set { _iVariableCount = value; }
-        }
-
-        public int FreeMembers
-        {
-            get { return _iFreeMembers; }
-            set { _iFreeMembers = value; }
-        }
-
-        public int ExperimentRepeat
-        {
-            get { return _iExperimentRepeat; }
-            set { _iExperimentRepeat = value; }
-        }
-
-        public List<float> PercentageSatisfiability
-        {
-            get { return _lstPercentageSatisfiability; }
-        }
+        public List<int> BorderCount { get; private set; }
+        public int VariableCount { get; set; }
+        public int FreeMembers { get; set; }
+        public int ExperimentRepeat { get; set; }
+        public List<float> PercentageSatisfiability { get; private set; }
     }
 }

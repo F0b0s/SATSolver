@@ -1,4 +1,4 @@
-﻿namespace SatSolver
+﻿namespace SatSolver.Reports
 {
     partial class ReportForm
     {
