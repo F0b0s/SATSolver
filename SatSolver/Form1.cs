@@ -96,25 +96,25 @@ namespace SatSolver
                 Log.DebugFormat("Size of mass = {0}", buffer.Length);
                 
                 int[] source = BinaryCounter.BinaryCounter.FindFreeMembersIndex(countParams, countFreeMembers);
-                int mask = BinaryCounter.BinaryCounter.GetMask(source);
-                int rotatedMask = BinaryCounter.BinaryCounter.GetRotateMask(mask);
+                uint mask = BinaryCounter.BinaryCounter.GetMask(source);
+                uint rotatedMask = BinaryCounter.BinaryCounter.GetRotateMask(mask);
                 Log.DebugFormat("Mask = {0}", mask);
                 Log.DebugFormat("RotateMask = {0}", rotatedMask);
 
                 for (int i = 0; (i < num) && (!e.Cancel); i++)
                 {
-                    int generatedConjunction = BinaryCounter.BinaryCounter.GetRandomСonjunction(countParams);
+                    uint generatedConjunction = BinaryCounter.BinaryCounter.GetRandomСonjunction(countParams);
                     Log.DebugFormat("Generate Digit = {0}", generatedConjunction);
 
                     foreach (var recoveredConjunction in BinaryCounter.BinaryCounter.RecoveredConjunction(mask, rotatedMask, generatedConjunction, countFreeMembers))
                     {
-                        int byteIndex = recoveredConjunction / 8;
+                        uint byteIndex = recoveredConjunction / 8;
                         Log.Debug("                PereborDigit = " + recoveredConjunction);
                         Log.Debug("                Index = " + byteIndex);
                         byte conjunctionByte = BinaryCounter.BinaryCounter.GetCheckedBitrForConjunction(recoveredConjunction);
                         if ((buffer[byteIndex] & conjunctionByte) == 0)
                             countUniqueConjunction++;
-                        
+
                         Log.Debug("                Count = " + countUniqueConjunction);
                         buffer[byteIndex] |= conjunctionByte;
                     }

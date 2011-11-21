@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using NUnit.Framework;
@@ -10,26 +11,11 @@ namespace Tests
     [TestFixture]
     public class Tests
     {
-        [Test]
-        public void Test()
-        {
-            int variableCount = 3;
-            var rnd = new Random();
-            for (int i = 0; i < 100; i++)
-            {
-                int rand = rnd.Next();
-                int del = (((int) 1) << variableCount);
-                int num5 = rand % del;
-                Debug.WriteLine(num5);
-            }
-            Console.ReadLine();
-        }
-
         [Test, Repeat(100)]
         public void GetBitNumberForConjunctionTest()
         {
             var rand = new Random();
-            var conjunction = rand.Next(50);
+            var conjunction = (uint)rand.Next(50);
             var result = BinaryCounter.GetCheckedBitrForConjunction(conjunction);
 
             Assert.AreEqual(Math.Pow(2, conjunction % 8), result);
@@ -47,15 +33,49 @@ namespace Tests
         [Test]
         public void RecoveredConjunctionTests()
         {
-            int mask = 0x00010101;
-            int rotatedMask = 0x11101010;
-            int conjunction = 16;
+            uint mask = 0x07;  //0x00000111
+            uint rotatedMask = 0xF8;//0x11111000
+            uint conjunction = 8;
             int countFreeMembers = 3;
 
-            var expectedConjunctions = new List<int>(){144, 176, 152, 16, 48, 24, 56};
-            var result = BinaryCounter.RecoveredConjunction(mask, rotatedMask, conjunction, countFreeMembers);
-            var resultConjunctions = new List<int>(result);
-            Assert.True(expectedConjunctions.All(resultConjunctions.Contains));
+            var expectedConjunctions = new List<uint>(){8, 9, 10, 11, 12, 13, 14, 15};
+            var list = new List<uint>();
+            foreach (var i in BinaryCounter.RecoveredConjunction(mask, rotatedMask, conjunction, countFreeMembers))
+            {
+                Debug.WriteLine(i);
+                list.Add(i);
+            }
+
+            Assert.True(expectedConjunctions.All(list.Contains));
+        }
+        
+        [Test]
+        public void RecoveredConjunctionTests2()
+        {
+            uint mask = 0x05;  //0x00000101
+            uint rotatedMask = 0xFA;//0x11111010
+            uint conjunction = 8;
+            int countFreeMembers = 2;
+
+            var expectedConjunctions = new List<uint>() { 8, 9, 12, 13 };
+            var list = new List<uint>();
+            foreach (var i in BinaryCounter.RecoveredConjunction(mask, rotatedMask, conjunction, countFreeMembers))
+            {
+                list.Add(i);
+            }
+
+            Assert.True(expectedConjunctions.All(list.Contains));
+        }
+
+        [Test]
+        public void GetRotateMaskTest()
+        {
+            uint mask = 0x07;
+            uint rotateMask = 0xFFFFFFF8;
+
+            var result = BinaryCounter.GetRotateMask(mask);
+
+            Assert.AreEqual(rotateMask, result);
 
         }
     }

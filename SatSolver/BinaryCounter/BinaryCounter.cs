@@ -24,15 +24,15 @@ namespace SatSolver.BinaryCounter
             return freeIndex.ToArray();
         }
 
-        public static IEnumerable<int> RecoveredConjunction(int mask, int rotateMask, int conjunction, int countFreeMembers)
+        public static IEnumerable<uint> RecoveredConjunction(uint mask, uint rotateMask, uint conjunction, int countFreeMembers)
         {
-            int currentConjunction = 0;
-            for (int i = 0; i < 1 << countFreeMembers; i++)
+            uint currentConjunction = 0;
+            for (uint i = 0; i < 1 << countFreeMembers; i++)
             {
-                currentConjunction |= mask; // TODO: разобраться надо ли обнулять здесь
+                currentConjunction |= rotateMask; 
                 currentConjunction++;
-                currentConjunction &= rotateMask;
-                int generatedConjunction = conjunction ^ currentConjunction;
+                currentConjunction &= mask;
+                uint generatedConjunction = conjunction ^ currentConjunction;
                 yield return generatedConjunction;
             }
         }
@@ -50,9 +50,9 @@ namespace SatSolver.BinaryCounter
         /// </summary>
         /// <param name="conjunction"></param>
         /// <returns></returns>
-        public static byte GetCheckedBitrForConjunction(int conjunction)
+        public static byte GetCheckedBitrForConjunction(uint conjunction)
         {
-            return Convert.ToByte((1 << (conjunction % 8)));
+            return Convert.ToByte((1 << ((int)conjunction % 8)));
         }
 
         /// <summary>
@@ -60,26 +60,26 @@ namespace SatSolver.BinaryCounter
         /// </summary>
         /// <param name="countParameters">Количество параметров конънкции</param>
         /// <returns></returns>
-        public static int GetRandomСonjunction(int countParameters)
+        public static uint GetRandomСonjunction(int countParameters)
         {
-            return Random.Next((1 << countParameters) - 1);
+            return (uint)Random.Next((1 << countParameters) - 1);
         }
 
-        public static int GetMask(int[] freeMembersIndex)
+        public static uint GetMask(int[] freeMembersIndex)
         {
-            int mask = 0;
+            uint mask = 0;
             for (int i = 0; i < freeMembersIndex.Length; i++)
             {
-                int temp = 1 << freeMembersIndex[i];
+                uint temp = (uint)1 << freeMembersIndex[i];
                 mask ^= temp;
             }
 
             return mask;
         }
 
-        public static int GetRotateMask(int mask)
+        public static uint GetRotateMask(uint mask)
         {
-            int rotateMask = 0;
+            uint rotateMask = 0xFFFFFFFF;
             rotateMask ^= mask;
             return rotateMask;
         }
