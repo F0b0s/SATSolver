@@ -12,7 +12,7 @@ namespace SatSolver.BinaryCounter
             if (countFreeMembers >= countMembers)
                 throw new ArgumentException("Количество свободных членов равно|больше общему количеству членов");
 
-            var freeIndex = new List<int>();
+            var freeIndex = new List<int>(countFreeMembers);
 
             while (freeIndex.Count < countFreeMembers)
             {

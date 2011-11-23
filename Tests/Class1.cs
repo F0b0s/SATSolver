@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using NUnit.Framework;
@@ -12,6 +11,34 @@ namespace Tests
     public class Tests
     {
         [Test, Repeat(100)]
+        public void FindFreeMembersIndexTests()
+        {
+            const int countParam = 4;
+            const int counrFreeMember = 2;
+
+            var indexes = BinaryCounter.FindFreeMembersIndex(countParam, counrFreeMember);
+            Assert.True(indexes.All(index => index < 4));
+        }
+
+        [Test]
+        public void FindFreeMembersIndex_PassCountFreeEqualCountParam_ThrowArgumentException()
+        {
+            const int countParam = 4;
+            const int counrFreeMember = 4;
+
+            Assert.Throws<ArgumentException>( () => BinaryCounter.FindFreeMembersIndex(countParam, counrFreeMember));
+        }
+
+        [Test]
+        public void FindFreeMembersIndex_PassCountFreeGreaterCountParam_ThrowArgumentException()
+        {
+            const int countParam = 4;
+            const int counrFreeMember = 6;
+
+            Assert.Throws<ArgumentException>(() => BinaryCounter.FindFreeMembersIndex(countParam, counrFreeMember));
+        }
+
+        [Test, Repeat(100)]
         public void GetBitNumberForConjunctionTest()
         {
             var rand = new Random();
@@ -22,12 +49,80 @@ namespace Tests
         }
 
         [Test]
-        public void FindSizeBitMapForCountParamsTests()
+        public void FindSizeBitMapForCountParamsTests_PassCountParamsLess8()
         {
             const int countParams = 2;
             var size = BinaryCounter.FindSizeBitMapForCountParams(countParams);
 
             Assert.AreEqual(1, size);
+        }
+
+        [Test]
+        public void FindSizeBitMapForCountParamsTests_PassCountParamsLess8_2()
+        {
+            const int countParams = 3;
+            var size = BinaryCounter.FindSizeBitMapForCountParams(countParams);
+
+            Assert.AreEqual(1, size);
+        }
+
+        [Test]
+        public void FindSizeBitMapForCountParamsTests_PassCountParamsGreater8()
+        {
+            const int countParams = 10;
+            var size = BinaryCounter.FindSizeBitMapForCountParams(countParams);
+
+            Assert.AreEqual(128, size);
+        }
+
+        [Test]
+        public void FindSizeBitMapForCountParamsTests_PassCountParamsDelete8()
+        {
+            const int countParams = 8;
+            var size = BinaryCounter.FindSizeBitMapForCountParams(countParams);
+
+            Assert.AreEqual(32, size);
+        }
+
+        [Test]
+        public void GetCheckedBitrForConjunction_PassZero_MustReturn1()
+        {
+            const int conjunction = 0;
+            Assert.AreEqual(1, BinaryCounter.GetCheckedBitrForConjunction(conjunction));
+        }
+
+        [Test]
+        public void GetCheckedBitrForConjunction_Pass9_MustReturn2()
+        {
+            const int conjunction = 9;
+            Assert.AreEqual(2, BinaryCounter.GetCheckedBitrForConjunction(conjunction));
+        }
+
+        [Test]
+        public void GetCheckedBitrForConjunction_Pass15_MustReturn8()
+        {
+            const int conjunction = 15;
+            Assert.AreEqual(128, BinaryCounter.GetCheckedBitrForConjunction(conjunction));
+        }
+
+        [Test]
+        public void GetMask1()
+        {
+            int[] freeMemberIndex = new int[3]{1, 5, 12};
+            const int expectedMask = 4130;
+            var result = BinaryCounter.GetMask(freeMemberIndex);
+
+            Assert.AreEqual(expectedMask, result);
+        }
+
+        [Test]
+        public void GetMask2()
+        {
+            int[] freeMemberIndex = new int[1] { 22 };
+            const int expectedMask = 4194304;
+            var result = BinaryCounter.GetMask(freeMemberIndex);
+
+            Assert.AreEqual(expectedMask, result);
         }
 
         [Test]
@@ -47,6 +142,16 @@ namespace Tests
             }
 
             Assert.True(expectedConjunctions.All(list.Contains));
+        }
+
+        [Test]
+        public void GetRotateMask()
+        {
+            const uint mask = 4194304;
+            const uint expectedRotateMask = 4290772991;
+            var result = BinaryCounter.GetRotateMask(mask);
+
+            Assert.AreEqual(expectedRotateMask, result);
         }
         
         [Test]
